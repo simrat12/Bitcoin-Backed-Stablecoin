@@ -1,0 +1,5 @@
+[workspace]
+members = [
+    "src/btc_iter2_backend",
+    "src/mock_https_outcalls",
+]

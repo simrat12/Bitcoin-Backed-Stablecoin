@@ -1,0 +1,6 @@
+type BtcPrice = record {
+    price: nat64;
+};
+service : {
+    get_btc_price: () -> (BtcPrice) query;
+}

@@ -1,0 +1,30 @@
+{
+  "canisters": {
+    "btc_iter2_backend": {
+      "candid": "src/btc_iter2_backend/btc_iter2_backend.did",
+      "package": "btc_iter2_backend",
+      "type": "rust",
+      "dependencies": [
+        "ckBTC-ledger"
+      ]
+    },
+    "mock_https_outcalls": {
+      "candid": "src/mock_https_outcalls/mock_https_outcalls.did",
+      "package": "mock_https_outcalls",
+      "type": "rust"
+    },
+    "ckBTC-ledger": {
+      "type": "custom",
+      "wasm": "icrc1-ledger.wasm",
+      "candid": "icrc1-ledger.did"
+    }
+  },
+  "defaults": {
+    "build": {
+      "args": "",
+      "packtool": ""
+    }
+  },
+  "output_env_file": ".env",
+  "version": 1
+}
