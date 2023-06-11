@@ -5,7 +5,7 @@
       "package": "btc_iter2_backend",
       "type": "rust",
       "dependencies": [
-        "ckBTC-ledger"
+        "ckBTCLedger"
       ]
     },
     "mock_https_outcalls": {
@@ -13,7 +13,7 @@
       "package": "mock_https_outcalls",
       "type": "rust"
     },
-    "ckBTC-ledger": {
+    "ckBTCLedger": {
       "type": "custom",
       "wasm": "icrc1-ledger.wasm",
       "candid": "icrc1-ledger.did"
