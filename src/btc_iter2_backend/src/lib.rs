@@ -1,14 +1,14 @@
 use candid::{CandidType, Nat, Deserialize};
 use ic_cdk::{api};
 use ic_cdk::export::candid;
-use ic_cdk_macros::{init, update, import};
+use ic_cdk_macros::*;
 use std::vec::Vec;
+use std::collections::HashMap;
 use std::future::Future;
 
-// This repo is based on the two links provided in the comments below, the fortune cookie example by Enocde which is based on the ckBTC example by Dfinity. This is
-// an attempt to translate the code from Motoko into Rust. There  are a few things to resolve, namely importing ckBTCLedger correctly, then after this compiles the
-//next step is to change the 'get cookie future' function so that instead of returning a fortune cookie, it uses a HTTPS outcall to return the BTC price and then mints 
-//the new tokens to the caller. The new tokens will be a separate icrc-1 token. Right now, we have one icrc-1 token which is just being used to mock ckBTC.
+// The idea here, is that a user calls the invoice function (which in turn fetches the BTC price from oracle's HTTPS outcall). 
+// Then, they transfer the given ckBTC to their respective address. Then they will call 'get_stable()' which checks if the
+//funds have been transferred. If so, the respective amount of stablecoin is minted to the caller's address.
 
 #[derive(Clone, Debug, Deserialize, CandidType)]
 pub struct Account {
@@ -30,49 +30,59 @@ struct ckBTCLedger;
 #[cfg(not(target_arch = "wasm32"))]
 struct ckBTCLedger;
 
+#[import(canister = "StableLedger")]
+#[cfg(target_arch = "wasm32")]
+struct StableLedgerr;
+
+#[import(canister_id = "aaaaa-aa", candid_path = "StableToken/icrc1-ledger.did")]             
+#[cfg(not(target_arch = "wasm32"))]
+struct StableLedger;
+
+#[import(canister = "mock_https_outcalls")]
+#[cfg(target_arch = "wasm32")]
+struct mock_https_outcalls;
+
+#[import(canister_id = "aaaaa-aa", candid_path = "mock_https_outcalls/mock_https_outcalls.did")]             
+#[cfg(not(target_arch = "wasm32"))]
+struct mock_https_outcalls;
+
 #[derive(Clone, Debug, Deserialize, CandidType)]
-struct Transfer {
+struct Mint {
     amount: Nat,
-    from_subaccount: Option<Vec<u8>>,
-    created_at_time: Option<Nat>,
-    fee: Option<Nat>,
-    memo: Option<Vec<u8>>,
     to: Account,
+    created_at_time: Option<Nat>,
+    memo: Option<Vec<u8>>,
 }
 
 #[derive(Clone, Debug, Deserialize, CandidType)]
-pub struct FortuneCookie {                           // Using Fortune cookie example for now https://dfinityorg.notion.site/ckBTC-example-Encode-Hackathon-0aaf6292e3404dabb49df5d1b5abc797, https://www.youtube.com/watch?v=t9DmBFj-3OA
-    cookies: Vec<&'static str>,
-}
-
-thread_local! {
-    static FORTUNE_COOKIE: std::cell::RefCell<FortuneCookie> = std::cell::RefCell::new(FortuneCookie {
-        cookies: vec![
-            "A journey of a thousand miles begins with a single step.",
-            // ... rest of the fortune cookies here
-        ],
-    });
+pub struct Minter {
+    invoices: HashMap<candid::Principal, Invoice>,
 }
 
 #[init]
 fn init() {
 }
 
+
+thread_local! {
+    static MINTER: std::cell::RefCell<Minter> = std::cell::RefCell::new(Minter {invoices: HashMap::new()});
+}
+
 #[update]
-async fn get_cookie() -> Result<String, String> {
-    let cookie_future = FORTUNE_COOKIE.with(|fc| fc.borrow().get_cookie_future());
-    cookie_future.await
+async fn get_stable() -> Result<String, String> {
+    let token_future = MINTER.with(|fc| fc.borrow().get_stable_future());
+    token_future.await
 }
 
 #[update]
 fn get_invoice() -> Invoice {
     let caller = api::caller();
-    let mut fc = FORTUNE_COOKIE.with(|fc| fc.borrow_mut().get_invoice(caller));
+    let mut fc = MINTER.with(|fc| fc.borrow_mut().get_invoice(caller));
     fc
 }
 
-impl FortuneCookie {
-    fn get_cookie_future(&self) -> impl Future<Output = Result<String, String>> {        //This logic will be changed to return the BTC price and mint the new tokens
+impl Minter {
+    fn get_stable_future(&self) -> impl Future<Output = Result<String, String>> {        //This checks the balance of the caller and mints the new tokens to the caller if they have fulfilled their invoice
         let caller = api::caller();
         let account = to_account(caller, api::id());
 
@@ -81,34 +91,36 @@ impl FortuneCookie {
             // Check balance
             let balance = ckBTCLedger::icrc1_balance_of((account.clone(),)).await?;
 
-            if balance < 100 {
-                return Err("Not enough funds available in the Account. Make sure you send at least 100 ckSats.".to_string());
+            let amount_to_send = self.invoices.get(&caller).unwrap().amount;
+
+            if balance < amount_to_send {
+                return Err("Not enough funds available in the Account!".to_string());
             }
 
-            // Transfer funds
-            let transfer = Transfer {
-                amount: balance - 10,
-                from_subaccount: Some(to_subaccount(caller)),
+            // Mint stablecoin
+            let mint = Mint {
+                amount: balance - amount_to_send,
                 created_at_time: None,
-                fee: Some(Nat::from(10)),
                 memo: None,
                 to: account.clone(),
             };
 
-            let transfer_result = ckBTCLedger::icrc1_transfer((transfer,)).await?;
-            if transfer_result.is_err() {
-                return Err(format!("Couldn't transfer funds to default account:\n{}", transfer_result.unwrap_err()));
+            let mint_result = StableLedger::icrc1_mint((mint,)).await?;
+            if mint_result.is_err() {
+                return Err(format!("Couldn't transfer funds to default account:\n{}", mint_result.unwrap_err()));
             }
 
-            // Return cookie
-            let cookie_index = api::time() as usize % self.cookies.len();
-            Ok(format!("🥠: {}", self.cookies[cookie_index]))
+            // Remove invoive
+            self.invoices.remove(&caller);
+            Ok("success!".to_string())
         }
     }
 
-    fn get_invoice(&mut self, caller: candid::Principal) -> Invoice {
+    fn get_invoice(&mut self, caller: candid::Principal) -> Invoice {    //Need to call oracle contract to fetch price of BTC here
         let account = to_account(caller, api::id());
-        create_invoice(account, Nat::from(100))
+        let invoice = create_invoice(account, Nat::from(100)); // 100 is just a placeholder for now
+        self.invoices.insert(caller, invoice);
+        invoice
     }
 }
 
@@ -134,5 +146,6 @@ fn create_invoice(to: Account, amount: Nat) -> Invoice {
         amount,
     }
 }
+
 
 

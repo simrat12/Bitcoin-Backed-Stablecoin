@@ -5,7 +5,9 @@
       "package": "btc_iter2_backend",
       "type": "rust",
       "dependencies": [
-        "ckBTCLedger"
+        "ckBTCLedger",
+        "StableLedger",
+        "mock_https_outcalls"
       ]
     },
     "mock_https_outcalls": {
@@ -17,6 +19,11 @@
       "type": "custom",
       "wasm": "icrc1-ledger.wasm",
       "candid": "icrc1-ledger.did"
+    },
+    "StableLedger": {
+      "type": "custom",
+      "wasm":"StableToken/icrc1-ledger.wasm",
+      "candid": "StableToken/icrc1-ledger.did"
     }
   },
   "defaults": {
