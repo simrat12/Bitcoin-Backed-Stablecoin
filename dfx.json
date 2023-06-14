@@ -6,8 +6,7 @@
       "type": "rust",
       "dependencies": [
         "ckBTCLedger",
-        "StableLedger",
-        "mock_https_outcalls"
+        "StableLedger"
       ]
     },
     "mock_https_outcalls": {
@@ -22,8 +21,8 @@
     },
     "StableLedger": {
       "type": "custom",
-      "wasm":"StableToken/icrc1-ledger.wasm",
-      "candid": "StableToken/icrc1-ledger.did"
+      "wasm":"src/StableToken/icrc1-ledger.wasm",
+      "candid": "src/StableToken/icrc1-ledger.did"
     }
   },
   "defaults": {

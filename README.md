@@ -31,17 +31,22 @@ To run the project locally, follow these steps:
     ```bash
     rustup target add wasm32-unknown-unknown
     ```
+    Deploy the ckBTCLedger and StableToken
+    ```bash
+    chmod +x deploy.sh
+    ```
+    ```bash
+    ./deploy.sh
+    ```
+    (For the next step, go to lines 61 and 76 of src/btc_iter2_backend and replace the PrincipalID's with your local ones from the previous command)
   - Register, build, and deploy the canisters specified in the dfx.json file by running the following command:  
     ```bash
-    dfx deploy
+    dfx deploy btc_iter2_backend
     ```
   - This command will register, build, and deploy the canisters to the local execution environment.
 
 ## To Do
 
-1. Ensure that the (mock) ckBTCcannister is imported correctly into the btc_iter2_backend lib.rs
-2. Test the functionality and ensure there are no issues
+1. Test the functionality in depth and ensure there are no issues
 3. Implement the HTTPS outcalls (right now we are just using a mock example)
-3. Copy and paste current icrc1-ledger.did/wasm files into a new directory and use this as the stablecoin 
-4. Change 'fortune cookie' implementation to call the https cannister and retrieve BTC price and mint stablecoin to the user
 5. Add functionality to handle redemptions
