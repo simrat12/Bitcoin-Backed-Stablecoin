@@ -31,12 +31,12 @@ To run the project locally, follow these steps:
     ```bash
     rustup target add wasm32-unknown-unknown
     ```
-    Deploy the ckBTCLedger and StableToken
+    Deploy the ckBTCLedger and StableToken (set the TOKEN2_MINTER_PRINCIPAL to your local btc_iter2_backend canister principal ID)
     ```bash
     chmod +x deploy.sh
     ```
     ```bash
-    ./deploy.sh
+    ./deploy.sh 
     ```
     (For the next step, go to lines 61 and 76 of src/btc_iter2_backend and replace the PrincipalID's with your local ones from the previous command)
   - Register, build, and deploy the canisters specified in the dfx.json file by running the following command:  
@@ -45,8 +45,34 @@ To run the project locally, follow these steps:
     ```
   - This command will register, build, and deploy the canisters to the local execution environment.
 
+3. Export the canister Id's to your environement:
+
+    ```bash
+    export BTC_BACKEND_CANISTER_ID=... # Your local btc_iter2_backend canister
+    ```
+    ```bash
+    export CKBTCLedger_CANISTER_ID=... # Your local ckBTCLedger canister
+    ```
+
+
+4. 
+  ```bash
+  dfx canister call ${BTC_BACKEND_CANISTER_ID} get_invoice
+  ```
+  - This will return a unique subaccount -> use this value in place of the placeholder subaccounts in the commands below.
+
+  ```bash
+  dfx canister call ${CKBTCLedger_CANISTER_ID} icrc1_transfer '(record { from_subaccount = null; to = record { owner = principal "'${BTC_BACKEND_CANISTER_ID}'"; subaccount = opt blob "\c5\801\84\e1\8b\d9k\e7~\03\ff\94\c7\a2\d9\ea\f3\12n\15\b6Pp\a6\12t\13\02\00\00\00"; }; amount = 110 : nat; })'
+  ```
+  ```bash
+  dfx canister call ${CKBTCLedger_CANISTER_ID} icrc1_balance_of '(record { owner = principal "'${BTC_BACKEND_CANISTER_ID}'"; subaccount = opt blob "\c5\801\84\e1\8b\d9k\e7~\03\ff\94\c7\a2\d9\ea\f3\12n\15\b6Pp\a6\12t\13\02\00\00\00" })'
+  ```
+  ```bash
+  dfx canister call ${BTC_BACKEND_CANISTER_ID} get_stable
+  ```
+
 ## To Do
 
-1. Test the functionality in depth and ensure there are no issues
-3. Implement the HTTPS outcalls (right now we are just using a mock example)
-5. Add functionality to handle redemptions
+1. Implement the HTTPS outcalls (right now we are just using a mock example)
+2. Add functionality to handle redemptions
+3. Add in a stable pool staking canister (similar to the model used by Liquity's ethereum backed stablecoin, $LUSD)
