@@ -125,10 +125,12 @@ version = "0.1.0"
 dependencies = [
  "candid",
  "data-encoding",
+ "hex",
  "ic-cdk",
  "ic-cdk-macros",
  "ic-cdk-timers",
  "serde",
+ "sha2",
  "tokio-test",
 ]
 

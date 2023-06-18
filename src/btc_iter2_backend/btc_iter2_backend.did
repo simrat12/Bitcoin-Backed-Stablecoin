@@ -6,9 +6,13 @@ type Account = record {
 type Invoice = record {
     to: Account;
     amount: nat;
+    hash: vec nat8;
+    used: bool;
+    operation: text;
+    caller: principal;
 };
 
-type Mint = record {
+type Transfer = record {
     amount: nat;
     to: Account;
     created_at_time: opt nat;
@@ -26,8 +30,9 @@ type Minter = record {
 
 service : {
     init: () -> ();
-    get_stable: () -> (result: variant { Ok: text; Err: text });
-    get_invoice: () -> (Invoice);
+    get_stable: (vec nat8) -> (result: variant { Ok: text; Err: text });
+    create_invoice: (nat, text) -> (Invoice);
+    redeem: (vec nat8) -> (result: variant { Ok: text; Err: text });
 }
 
 
