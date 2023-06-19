@@ -1,0 +1,3 @@
+service : {
+    "get_btc_usd_exchange": () -> (variant { Ok: nat; Err: text });
+}
